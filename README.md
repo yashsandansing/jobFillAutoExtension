@@ -14,35 +14,28 @@ Job applications are spread out all over different job boards. All job boards tr
 
 ## Note
 
-This extension is currently a work in progress and is meant to be run as an unpacked Chrome extension in developer/debug mode. You should be comfortable creating a Google Cloud OAuth client and editing `manifest.json`. It also supports a rigid sheet structure currently, so your Google Sheet should have the fields given below in the mentioned order. 
+This extension is currently a work in progress and is meant to be run as an unpacked Chrome extension in developer/debug mode. You should be comfortable creating a Google Cloud OAuth client and editing `manifest.json`.
 
-## Google Sheet layout
+## Configurable Google Sheet layout
 
-The extension appends **one row** with **14 columns** (in order). Your sheet’s **header row** should match this so columns line up.
+The extension appends one row using the field order configured in the extension settings page. Your Google Sheet header row should match that same order so columns line up.
 
+Open settings from the popup or from Chrome's extension options page. Settings let you configure:
 
-| Column | Header (suggested)     | Filled by extension     |
-| ------ | ---------------------- | ----------------------- |
-| A      | Job link               | Yes — current tab URL * |
-| B      | Organization           | Yes *                   |
-| C      | Role                   | Yes *                   |
-| D      | Date                   | Yes — `DD/MM/YYYY`*     |
-| E      | Company URL            | No — left empty         |
-| F      | Status                 | Yes — set to `Applied`  |
-| G      | Recruiter 1            | No — left empty         |
-| H      | Recruiter 2            | No — left empty         |
-| I      | Recruiter 3            | No — left empty         |
-| J      | Recruiter 4            | No — left empty         |
-| K      | Recruiter 5            | No — left empty         |
-| L      | Additional recruiters  | No — left empty         |
-| M      | Recruiter email status | No — left empty         |
-| N      | Notes                  | No — left empty         |
+- Google Sheet ID.
+- Tab name.
+- Custom fields.
+- Required fields.
+- Which fields appear in the popup.
+- Field order, changed by dragging fields, which controls append order.
+- Autofill sources such as current URL, detected role, detected organization, detected location, detected salary, and today's date.
+- Optional default values that fill the popup when the selected autofill source is blank.
 
+The extension does not validate Google Sheet headers yet. Keep the configured field order aligned with your sheet columns.
 
-**Example header row (row 1):**  
-`Job link | Organization | Role | Date | Company URL | Status | Recruiter 1 | Recruiter 2 | Recruiter 3 | Recruiter 4 | Recruiter 5 | Additional recruiters | Recruiter email status | Notes`
+Example field layout:
 
-The tab you use in the extension must exist and should have this structure (at least columns A–N in row 1 for clarity).
+`Job link | Organization | Role | Date | Location | Salary | Status | Notes`
 
 ## Setup
 
@@ -79,17 +72,21 @@ After saving `manifest.json`, go back to `chrome://extensions` and click **Reloa
 
 1. Open your sheet and note the **Sheet ID** from the URL:
   `https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit`
-2. Open the extension popup → **Sheet settings** → paste **Sheet ID** and the exact **tab name** (e.g. `Sheet1`).
-3. On a job posting page, open the popup, confirm or edit fields, then **Submit to Sheets**.
+2. Open the extension popup → **Settings**.
+3. Paste the **Sheet ID** and exact **tab name** (e.g. `Sheet1`).
+4. Add fields and drag them into the same order as your Google Sheet columns.
+5. Mark required fields, choose autofill sources, and add default values where useful.
+6. Save settings.
+7. On a job posting page, open the popup, confirm or edit fields, then **Submit to Sheets**.
 
 ## Tasks to-do:
 - [ ] Fix all auto-fill fields (job title, company name, salary comp on all job board sites)
     - [x] Fix company name on Ashby, Greenhouse, Lever, Workday
     - [ ] Detect salary comp
     - [ ] Add location field (auto-detection) to job fields
-- [ ] Screen to add configuration options
-    - [ ] Users can set their own columns to auto detect and enter
-    - [ ] Users should be able to select the mandatory columns, and click (see more...) to expand the modal to add entries in optional columns
+- [x] Screen to add configuration options
+    - [x] Users can set their own columns to auto detect and enter
+    - [x] Users should be able to select the mandatory columns, and click (see more...) to expand the modal to add entries in optional columns
 - [ ] Make extension sticky (open once, close only on close button)
 - [ ] Linkedin job link needs to click the "Copy Link" button to copy the job link
 - [ ] Remove query params

@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
     body {
-      width: 300px;
+      width: 340px;
       padding: 15px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1f2933;
     }
+
     .form-group {
       margin-bottom: 12px;
     }
+
     label {
       display: block;
       font-size: 12px;
@@ -17,6 +21,7 @@
       margin-bottom: 4px;
       color: #555;
     }
+
     input, textarea {
       width: 100%;
       box-sizing: border-box;
@@ -25,6 +30,7 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+
     button {
       width: 100%;
       padding: 10px;
@@ -35,60 +41,80 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #45a049;
     }
+
+    button.secondary {
+      background-color: #e5eaf1;
+      color: #1f2933;
+      margin-top: 8px;
+    }
+
+    button.secondary:hover {
+      background-color: #d7dee8;
+    }
+
+    button.link {
+      width: auto;
+      padding: 0;
+      margin: 4px 0 12px;
+      background: transparent;
+      color: #007bff;
+      font-size: 12px;
+      text-decoration: underline;
+    }
+
+    button.link:hover {
+      background: transparent;
+    }
+
     #status {
       margin-top: 10px;
       font-size: 12px;
       text-align: center;
       min-height: 1.2em;
     }
-    .settings-toggle {
-      font-size: 11px;
-      color: #007bff;
-      cursor: pointer;
-      text-align: right;
-      margin-top: 10px;
-    }
-    #settings {
+
+    #setupPrompt {
       display: none;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px dashed #ccc;
+      padding: 12px;
+      border: 1px solid #f2c94c;
+      border-radius: 6px;
+      background: #fff8df;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 12px;
     }
+
+    #optionalFields {
+      display: none;
+    }
+
+    #seeMore {
+      display: none;
+    }
+
     .error { color: #d9534f; }
     .success { color: #5cb85c; }
   </style>
 </head>
 <body>
-  <div class="form-group">
-    <label for="organization">ORGANIZATION</label>
-    <input type="text" id="organization" placeholder="e.g. Google">
+  <div id="setupPrompt">
+    Configure a Sheet ID, tab name, and at least one field before submitting applications.
+    <button id="setupSettings" type="button" class="secondary">Open Settings</button>
   </div>
-  <div class="form-group">
-    <label for="role">ROLE</label>
-    <input type="text" id="role" placeholder="e.g. Software Engineer">
-  </div>
-  <div class="form-group">
-    <label for="jobLink">JOB LINK</label>
-    <input type="text" id="jobLink" placeholder="Job posting URL">
-  </div>
-  
-  <button id="submit">Submit to Sheets</button>
-  <div id="status"></div>
 
-  <div class="settings-toggle" id="toggleSettings">Sheet Settings (Expand)</div>
-  <div id="settings">
-    <div class="form-group">
-      <label for="sheetId">Google Sheet ID</label>
-      <input type="text" id="sheetId" placeholder="The long ID in the URL">
-    </div>
-    <div class="form-group">
-      <label for="tabName">Tab Name (optional)</label>
-      <input type="text" id="tabName" placeholder="Sheet1" value="Sheet1">
-    </div>
+  <div id="form">
+    <div id="visibleFields"></div>
+    <button id="seeMore" type="button" class="link">See more fields</button>
+    <div id="optionalFields"></div>
+    <button id="submit">Submit to Sheets</button>
   </div>
+
+  <div id="status"></div>
+  <button id="openSettings" type="button" class="secondary">Settings</button>
 
   <script src="popup.js"></script>
 </body>

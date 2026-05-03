@@ -1,83 +1,229 @@
-document.addEventListener('DOMContentLoaded', async () => {
-  const orgInput = document.getElementById('organization');
-  const roleInput = document.getElementById('role');
-  const linkInput = document.getElementById('jobLink');
-  const sheetIdInput = document.getElementById('sheetId');
-  const tabNameInput = document.getElementById('tabName');
-  const submitBtn = document.getElementById('submit');
-  const statusDiv = document.getElementById('status');
-  const toggleBtn = document.getElementById('toggleSettings');
-  const settingsDiv = document.getElementById('settings');
+document.addEventListener("DOMContentLoaded", async () => {
+  const configStorageKey = "jobFillConfig";
+  const setupPrompt = document.getElementById("setupPrompt");
+  const form = document.getElementById("form");
+  const visibleFields = document.getElementById("visibleFields");
+  const optionalFields = document.getElementById("optionalFields");
+  const seeMoreButton = document.getElementById("seeMore");
+  const setupSettingsButton = document.getElementById("setupSettings");
+  const openSettingsButton = document.getElementById("openSettings");
+  const submitButton = document.getElementById("submit");
+  const statusDiv = document.getElementById("status");
 
-  // Load saved settings
-  chrome.storage.sync.get(['sheetId', 'tabName'], (data) => {
-    if (data.sheetId) sheetIdInput.value = data.sheetId;
-    if (data.tabName) tabNameInput.value = data.tabName;
-  });
+  const storageData = await getStorage([
+    configStorageKey,
+    "sheetId",
+    "tabName",
+    "fields",
+  ]);
+  const config = readConfig(storageData, configStorageKey);
+  const fields = Array.isArray(config.fields) ? config.fields : [];
+  const tab = await getActiveTab();
+  const detectedValues = await getDetectedValues(tab);
+  const valuesByFieldId = {};
 
-  // Toggle settings visibility
-  toggleBtn.addEventListener('click', () => {
-    const isHidden = settingsDiv.style.display === 'none' || !settingsDiv.style.display;
-    settingsDiv.style.display = isHidden ? 'block' : 'none';
-    toggleBtn.textContent = isHidden ? 'Sheet Settings (Collapse)' : 'Sheet Settings (Expand)';
-  });
+  setupSettingsButton.addEventListener("click", openOptionsPage);
+  openSettingsButton.addEventListener("click", openOptionsPage);
 
-  // Extract data from the active tab
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      linkInput.value = tab.url;
-      
-      // Request data from content script
-      chrome.tabs.sendMessage(tab.id, { action: "extractData" }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Message error:", chrome.runtime.lastError.message);
-          return;
-        }
-        if (response) {
-          if (response.role) roleInput.value = response.role;
-          if (response.organization) orgInput.value = response.organization;
-        }
-      });
-    }
-  } catch (err) {
-    console.error("Popup data extraction error:", err);
+  if (!config.sheetId || !config.tabName || fields.length === 0) {
+    setupPrompt.style.display = "block";
+    form.style.display = "none";
+    showStatus("Open settings to finish setup.", "error");
+    return;
   }
 
-  // Handle submission
-  submitBtn.addEventListener('click', async () => {
-    const data = {
-      organization: orgInput.value.trim(),
-      role: roleInput.value.trim(),
-      jobLink: linkInput.value.trim(),
-      sheetId: sheetIdInput.value.trim(),
-      tabName: tabNameInput.value.trim() || 'Sheet1'
-    };
+  renderFields(fields, tab, detectedValues, valuesByFieldId);
 
-    if (!data.organization || !data.role || !data.sheetId) {
-      showStatus('Organization, Role, and Sheet ID are required.', 'error');
+  seeMoreButton.addEventListener("click", () => {
+    const isHidden =
+      optionalFields.style.display === "none" || !optionalFields.style.display;
+    optionalFields.style.display = isHidden ? "block" : "none";
+    seeMoreButton.textContent = isHidden
+      ? "Hide optional fields"
+      : "See more fields";
+  });
+
+  submitButton.addEventListener("click", () => {
+    const missingRequired = fields.filter(
+      (field) =>
+        field.required && !String(valuesByFieldId[field.id] || "").trim(),
+    );
+
+    if (missingRequired.length) {
+      showStatus(
+        `Required: ${missingRequired.map((field) => field.label).join(", ")}`,
+        "error",
+      );
       return;
     }
 
-    // Save Sheet ID and Tab Name for next time
-    chrome.storage.sync.set({ sheetId: data.sheetId, tabName: data.tabName });
+    submitButton.disabled = true;
+    showStatus("Submitting...", "");
 
-    showStatus('Submitting...', '');
-    submitBtn.disabled = true;
-
-    chrome.runtime.sendMessage({ action: "appendToSheet", payload: data }, (response) => {
-      submitBtn.disabled = false;
-      if (response && response.success) {
-        showStatus('Success! Appended to Sheet.', 'success');
-      } else {
-        const errorMsg = response ? response.error : 'Unknown error';
-        showStatus('Error: ' + errorMsg, 'error');
-      }
-    });
+    chrome.runtime.sendMessage(
+      {
+        action: "appendToSheet",
+        payload: {
+          sheetId: config.sheetId,
+          tabName: config.tabName,
+          valuesByFieldId,
+          fields,
+        },
+      },
+      (response) => {
+        submitButton.disabled = false;
+        if (response && response.success) {
+          showStatus("Success! Appended to Sheet.", "success");
+        } else {
+          const errorMsg = response ? response.error : "Unknown error";
+          showStatus(`Error: ${errorMsg}`, "error");
+        }
+      },
+    );
   });
+
+  function renderFields(allFields, activeTab, detected, fieldValues) {
+    const popupFields = allFields.filter(
+      (field) => field.visibleInPopup !== false,
+    );
+    const requiredFields = popupFields.filter((field) => field.required);
+    const optionalPopupFields = popupFields.filter((field) => !field.required);
+
+    allFields.forEach((field) => {
+      fieldValues[field.id] = getAutofillValue(field, activeTab, detected);
+    });
+
+    requiredFields.forEach((field) => {
+      visibleFields.appendChild(createFieldInput(field, fieldValues));
+    });
+
+    optionalPopupFields.forEach((field) => {
+      optionalFields.appendChild(createFieldInput(field, fieldValues));
+    });
+
+    if (optionalPopupFields.length) {
+      seeMoreButton.style.display = "inline-block";
+    }
+
+    if (!requiredFields.length && optionalPopupFields.length) {
+      optionalFields.style.display = "block";
+      seeMoreButton.style.display = "none";
+    }
+  }
+
+  function createFieldInput(field, fieldValues) {
+    const group = document.createElement("div");
+    group.className = "form-group";
+
+    const label = document.createElement("label");
+    label.htmlFor = `field-${field.id}`;
+    label.textContent = field.required ? `${field.label} *` : field.label;
+
+    const input = document.createElement("input");
+    input.id = `field-${field.id}`;
+    input.type = "text";
+    input.value = fieldValues[field.id] || "";
+    input.placeholder = field.label;
+    input.addEventListener("input", () => {
+      fieldValues[field.id] = input.value.trim();
+    });
+
+    group.append(label, input);
+    return group;
+  }
 
   function showStatus(message, type) {
     statusDiv.textContent = message;
     statusDiv.className = type;
   }
 });
+
+function getStorage(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(keys, resolve);
+  });
+}
+
+function readConfig(data, configStorageKey) {
+  const storedConfig = data[configStorageKey] || {};
+
+  return {
+    sheetId: storedConfig.sheetId || data.sheetId || "",
+    tabName: storedConfig.tabName || data.tabName || "",
+    fields: Array.isArray(storedConfig.fields)
+      ? storedConfig.fields
+      : Array.isArray(data.fields)
+        ? data.fields
+        : [],
+  };
+}
+
+async function getActiveTab() {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return tab || null;
+  } catch (err) {
+    console.error("Active tab error:", err);
+    return null;
+  }
+}
+
+function getDetectedValues(tab) {
+  return new Promise((resolve) => {
+    if (!tab?.id) {
+      resolve({});
+      return;
+    }
+
+    chrome.tabs.sendMessage(tab.id, { action: "extractData" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Message error:", chrome.runtime.lastError.message);
+        resolve({});
+        return;
+      }
+
+      resolve(response || {});
+    });
+  });
+}
+
+function getAutofillValue(field, tab, detectedValues) {
+  const sourceValue = getSourceAutofillValue(field, tab, detectedValues);
+
+  if (String(sourceValue || "").trim()) {
+    return sourceValue;
+  }
+
+  return field.defaultValueEnabled ? field.defaultValue || "" : "";
+}
+
+function getSourceAutofillValue(field, tab, detectedValues) {
+  switch (field.autofillSource) {
+    case "currentUrl":
+      return tab?.url || "";
+    case "role":
+      return detectedValues.role || "";
+    case "organization":
+      return detectedValues.organization || "";
+    case "location":
+      return detectedValues.location || "";
+    case "salary":
+      return detectedValues.salary || "";
+    case "today":
+      return formatToday();
+    default:
+      return "";
+  }
+}
+
+function formatToday() {
+  const now = new Date();
+  return `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+}
+
+function openOptionsPage() {
+  chrome.runtime.openOptionsPage();
+}

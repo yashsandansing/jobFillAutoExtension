@@ -6,28 +6,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 function extractJobInfo() {
   const result = {
-    role: '',
-    organization: '',
-    salaryComp: '',
-    location: ''
+    role: "",
+    organization: "",
+    salary: "",
+    location: "",
   };
 
   const host = window.location.hostname.toLowerCase();
 
-  if (host.includes('lever.co')) {
+  if (host.includes("lever.co")) {
     extractLever(result);
-  } else if (host.includes('greenhouse.io') || host.includes('greenhouse.com')) {
+  } else if (
+    host.includes("greenhouse.io") ||
+    host.includes("greenhouse.com")
+  ) {
     extractGreenhouse(result);
-  } else if (host.includes('linkedin.com')) {
+  } else if (host.includes("linkedin.com")) {
     extractLinkedIn(result);
-  } else if (host.includes('ashbyhq.com')) {
+  } else if (host.includes("ashbyhq.com")) {
     extractAshby(result);
-  } else if (host.includes('myworkdayjobs.com') || host.includes('workdayjobs.com')) {
+  } else if (
+    host.includes("myworkdayjobs.com") ||
+    host.includes("workdayjobs.com")
+  ) {
     extractWorkday(result);
   }
-  
+
   if (!result.role && !result.organization) {
-    console.log("Using fallback")
     applyBasicFallback(result);
   }
 
@@ -39,44 +44,54 @@ function extractJobInfo() {
 function extractLever(result) {
   const ogTitle = document.querySelector('meta[property="og:title"]');
   const titleText = (ogTitle?.content || document.title).trim();
-  if (!titleText.includes(' - ')) {
+  if (!titleText.includes(" - ")) {
     return;
   }
-  const [organization, ...roleParts] = titleText.split(' - ');
+  const [organization, ...roleParts] = titleText.split(" - ");
   result.organization = organization.trim();
-  result.role = roleParts.join(' - ').trim();
+  result.role = roleParts.join(" - ").trim();
 }
 
 function extractGreenhouse(result) {
-  const titlePrefix = 'Job Application for ';
+  const titlePrefix = "Job Application for ";
   const titleText = document.title.trim();
-  const ogDescription = document.querySelector('meta[property="og:description"]');
+  const ogDescription = document.querySelector(
+    'meta[property="og:description"]',
+  );
   if (ogDescription?.content) {
     result.location = ogDescription.content.trim();
   }
 
-  if (!titleText.startsWith(titlePrefix) || !titleText.includes(' at ')) {
+  if (!titleText.startsWith(titlePrefix) || !titleText.includes(" at ")) {
     // use fallback parsing instead
     return;
   }
 
-  const [role, organization] = titleText
-    .replace(titlePrefix, '')
-    .split(' at ');
+  const [role, organization] = titleText.replace(titlePrefix, "").split(" at ");
   result.role = role.trim();
   result.organization = organization.trim();
 }
 
 function extractLinkedIn(result) {
-  const job = document.querySelector('.job-details-jobs-unified-top-card__job-title');
-  const organization = document.querySelector('.job-details-jobs-unified-top-card__company-name');
+  const job = document.querySelector(
+    ".job-details-jobs-unified-top-card__job-title",
+  );
+  const organization = document.querySelector(
+    ".job-details-jobs-unified-top-card__company-name",
+  );
+  const location = document.querySelector(
+    ".job-details-jobs-unified-top-card__primary-description-container",
+  );
 
   if (job) result.role = job.innerText.trim();
   if (organization) result.organization = organization.innerText.trim();
+  if (location) result.location = location.innerText.split("·")[0].trim();
 }
 
 function extractAshby(result) {
-  const metaTitle = document.querySelector('meta[name="title"]').content.split('@');
+  const metaTitle = (
+    document.querySelector('meta[name="title"]')?.content || ""
+  ).split("@");
   const job = metaTitle[0];
   const organization = metaTitle[1];
 
@@ -87,11 +102,11 @@ function extractAshby(result) {
 }
 
 function extractWorkday(result) {
-  const tenant = window.location.hostname.split('.')[0];
+  const tenant = window.location.hostname.split(".")[0];
   const ogTitle = document.querySelector('meta[property="og:title"]');
   const metaTitle = document.querySelector('meta[name="title"]');
   const titleText = decodeHtmlEntities(
-    (ogTitle?.content || metaTitle?.content || document.title || '').trim()
+    (ogTitle?.content || metaTitle?.content || document.title || "").trim(),
   );
   if (tenant) {
     result.organization = tenant.charAt(0).toUpperCase() + tenant.slice(1);
@@ -104,7 +119,11 @@ function extractWorkday(result) {
 function applyBasicFallback(result) {
   const ogTitle = document.querySelector('meta[property="og:title"]');
   const metaTitle = document.querySelector('meta[name="title"]');
-  const titleText = ogTitle ? ogTitle.content : (metaTitle ? metaTitle.content : document.title);
+  const titleText = ogTitle
+    ? ogTitle.content
+    : metaTitle
+      ? metaTitle.content
+      : document.title;
 
   if (titleText.includes(" - ")) {
     const parts = titleText.split(" - ");
@@ -122,18 +141,26 @@ function applyBasicFallback(result) {
 function cleanResult(result) {
   result.role = decodeHtmlEntities(result.role);
   result.organization = decodeHtmlEntities(result.organization);
-  result.salaryComp = decodeHtmlEntities(result.salaryComp);
+  result.salary = decodeHtmlEntities(result.salary);
   result.location = decodeHtmlEntities(result.location);
 
-  const siteSuffixes = [" - LinkedIn", " Jobs", " Careers", " | Lever", " | Greenhouse", " | Ashby", " | Workday"];
-  siteSuffixes.forEach(suffix => {
-    result.role = result.role.replace(suffix, '').trim();
-    result.organization = result.organization.replace(suffix, '').trim();
+  const siteSuffixes = [
+    " - LinkedIn",
+    " Jobs",
+    " Careers",
+    " | Lever",
+    " | Greenhouse",
+    " | Ashby",
+    " | Workday",
+  ];
+  siteSuffixes.forEach((suffix) => {
+    result.role = result.role.replace(suffix, "").trim();
+    result.organization = result.organization.replace(suffix, "").trim();
   });
 }
 
 function decodeHtmlEntities(value) {
-  const textarea = document.createElement('textarea');
+  const textarea = document.createElement("textarea");
   textarea.innerHTML = value;
   return textarea.value;
 }

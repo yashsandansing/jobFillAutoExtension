@@ -29,27 +29,13 @@ function getAuthToken() {
 }
 
 async function appendToGoogleSheet(token, data) {
-  const { organization, role, jobLink, sheetId, tabName } = data;
-  const now = new Date();
-  const today = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-  
-  // Row structure: 14 columns
-  // JOB LINK | ORGANIZATION | ROLE | Date | Company URL | STATUS | RECRUITER 1-5 | ADDITIONAL RECRUITERS | Recruiter Email Status | Notes
-  const row = [
-    jobLink,
-    organization,
-    role,
-    today,
-    "",             // Company URL
-    "Applied",      // STATUS
-    "", "", "", "", "", // RECRUITER 1-5
-    "",             // ADDITIONAL RECRUITERS
-    "",             // Recruiter Email Status
-    ""              // Notes
-  ];
+  const config = await loadAppendConfig(data);
+  const row = config.fields.map((field) => (
+    config.valuesByFieldId[field.id] || ""
+  ));
 
-  const encodedRange = encodeURIComponent(`${tabName}!A:A`);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodedRange}:append?valueInputOption=USER_ENTERED`;
+  const encodedRange = encodeURIComponent(`${config.tabName}!A:A`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodedRange}:append?valueInputOption=USER_ENTERED`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -58,7 +44,7 @@ async function appendToGoogleSheet(token, data) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      range: `${tabName}!A:A`,
+      range: `${config.tabName}!A:A`,
       majorDimension: "ROWS",
       values: [row]
     })
@@ -70,4 +56,51 @@ async function appendToGoogleSheet(token, data) {
   }
 
   return await response.json();
+}
+
+async function loadAppendConfig(data) {
+  const storedConfig = await getStoredConfig();
+  const sheetId = data.sheetId || storedConfig.sheetId;
+  const tabName = data.tabName || storedConfig.tabName;
+  const fields = Array.isArray(data.fields) && data.fields.length
+    ? data.fields
+    : storedConfig.fields;
+  const valuesByFieldId = data.valuesByFieldId || {};
+
+  if (!sheetId) {
+    throw new Error("Google Sheet ID is required.");
+  }
+
+  if (!tabName) {
+    throw new Error("Tab name is required.");
+  }
+
+  if (!Array.isArray(fields) || fields.length === 0) {
+    throw new Error("At least one configured field is required.");
+  }
+
+  return {
+    sheetId,
+    tabName,
+    fields,
+    valuesByFieldId
+  };
+}
+
+function getStoredConfig() {
+  const configStorageKey = 'jobFillConfig';
+
+  return new Promise((resolve) => {
+    chrome.storage.sync.get([configStorageKey, 'sheetId', 'tabName', 'fields'], (data) => {
+      const storedConfig = data[configStorageKey] || {};
+
+      resolve({
+        sheetId: storedConfig.sheetId || data.sheetId || '',
+        tabName: storedConfig.tabName || data.tabName || '',
+        fields: Array.isArray(storedConfig.fields)
+          ? storedConfig.fields
+          : (Array.isArray(data.fields) ? data.fields : [])
+      });
+    });
+  });
 }
