@@ -164,3 +164,16 @@ function decodeHtmlEntities(value) {
   textarea.innerHTML = value;
   return textarea.value;
 }
+if (typeof module !== "undefined") {
+  module.exports = {
+    extractJobInfo,
+    extractLever,
+    extractGreenhouse,
+    extractLinkedIn,
+    extractAshby,
+    extractWorkday,
+    applyBasicFallback,
+    cleanResult,
+    decodeHtmlEntities,
+  };
+}
