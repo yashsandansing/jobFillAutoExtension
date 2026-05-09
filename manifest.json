@@ -3,36 +3,25 @@
   "name": "Job Fill Auto Extension",
   "version": "1.0",
   "description": "Appends job application data to Google Sheets.",
-  "permissions": [
-    "activeTab",
-    "identity",
-    "storage",
-    "scripting"
-  ],
+  "permissions": ["activeTab", "identity", "storage", "scripting"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup/popup.html"
   },
   "options_ui": {
-    "page": "settings.html",
+    "page": "settings/settings.html",
     "open_in_tab": true
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ]
+      "matches": ["<all_urls>"],
+      "js": ["scripts/content.js"]
     }
   ],
   "oauth2": {
-    "client_id": "351681280021-lvcqh2guj49ar1ajuqeopqp1726osc9g.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/spreadsheets"
-    ]
+    "client_id": "351681280021-0j0aih91i3tmstkbe02ip0ae1qblo61s.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/spreadsheets"]
   }
 }

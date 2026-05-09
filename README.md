@@ -1,6 +1,7 @@
 # Job Fill Auto Extension
 
-Chrome extension that appends a row to your Google Sheet when you submit job details from the popup. Supports the following job boards:
+Chrome extension that appends a row to your Google Sheet when you submit job details from the popup. 
+Supports the following job boards:
 
 - Ashby
 - Greenhouse
@@ -80,16 +81,27 @@ After saving `manifest.json`, go back to `chrome://extensions` and click **Reloa
 7. On a job posting page, open the popup, confirm or edit fields, then **Submit to Sheets**.
 
 ## Tasks to-do:
-- [ ] Fix all auto-fill fields (job title, company name, salary comp on all job board sites)
-    - [x] Fix company name on Ashby, Greenhouse, Lever, Workday
-    - [ ] Detect salary comp
-    - [ ] Add location field (auto-detection) to job fields
 - [x] Screen to add configuration options
     - [x] Users can set their own columns to auto detect and enter
     - [x] Users should be able to select the mandatory columns, and click (see more...) to expand the modal to add entries in optional columns
+- [x] Fix current auto-fill fields (job title, company name, on all job board sites)
+    - [x] Fix company name on Ashby, Greenhouse, Lever, Workday
+    - [x] Add location field (auto-detection) to job fields
+- [ ] Detect 
+  - [ ] Detect salary comp
+  - [ ] location
+  - [ ] day applied on (current day or any other day)
+  - [ ] date job posted on (ashby, and others)
+  - [ ] work type (remote, on-site, hybrid)
 - [ ] Make extension sticky (open once, close only on close button)
 - [ ] Linkedin job link needs to click the "Copy Link" button to copy the job link
-- [ ] Remove query params
+- [ ] Check if job already applied to (unique constraint on job id/url - might make mandatory)
 - [ ] Add option to sign in with google (social login) to auto detect sheets and names
-    - [ ] Removes the need to have a unique key so that everyone can login easily
+    - [ ] Removes the need to have a unique key so that login is streamlined
 - [ ] Publish extension to google extension store
+- [ ] Enhancements
+  - [ ] Option to edit job details/fields if already in tracker
+  - [ ] Add recruiter support
+    - [ ] support filling details on linkedin/manual fill
+    - [ ] plan the design and flow for this
+- [ ] Remove query params

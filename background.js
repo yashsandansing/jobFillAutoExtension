@@ -30,29 +30,31 @@ function getAuthToken() {
 
 async function appendToGoogleSheet(token, data) {
   const config = await loadAppendConfig(data);
-  const row = config.fields.map((field) => (
-    config.valuesByFieldId[field.id] || ""
-  ));
+  const row = config.fields.map(
+    (field) => config.valuesByFieldId[field.id] || "",
+  );
 
   const encodedRange = encodeURIComponent(`${config.tabName}!A:A`);
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodedRange}:append?valueInputOption=USER_ENTERED`;
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       range: `${config.tabName}!A:A`,
       majorDimension: "ROWS",
-      values: [row]
-    })
+      values: [row],
+    }),
   });
 
   if (!response.ok) {
     const errBody = await response.json();
-    throw new Error(errBody.error ? errBody.error.message : response.statusText);
+    throw new Error(
+      errBody.error ? errBody.error.message : response.statusText,
+    );
   }
 
   return await response.json();
@@ -62,9 +64,10 @@ async function loadAppendConfig(data) {
   const storedConfig = await getStoredConfig();
   const sheetId = data.sheetId || storedConfig.sheetId;
   const tabName = data.tabName || storedConfig.tabName;
-  const fields = Array.isArray(data.fields) && data.fields.length
-    ? data.fields
-    : storedConfig.fields;
+  const fields =
+    Array.isArray(data.fields) && data.fields.length
+      ? data.fields
+      : storedConfig.fields;
   const valuesByFieldId = data.valuesByFieldId || {};
 
   if (!sheetId) {
@@ -83,24 +86,38 @@ async function loadAppendConfig(data) {
     sheetId,
     tabName,
     fields,
-    valuesByFieldId
+    valuesByFieldId,
   };
 }
 
 function getStoredConfig() {
-  const configStorageKey = 'jobFillConfig';
+  const configStorageKey = "jobFillConfig";
 
   return new Promise((resolve) => {
-    chrome.storage.sync.get([configStorageKey, 'sheetId', 'tabName', 'fields'], (data) => {
-      const storedConfig = data[configStorageKey] || {};
+    chrome.storage.sync.get(
+      [configStorageKey, "sheetId", "tabName", "fields"],
+      (data) => {
+        const storedConfig = data[configStorageKey] || {};
 
-      resolve({
-        sheetId: storedConfig.sheetId || data.sheetId || '',
-        tabName: storedConfig.tabName || data.tabName || '',
-        fields: Array.isArray(storedConfig.fields)
-          ? storedConfig.fields
-          : (Array.isArray(data.fields) ? data.fields : [])
-      });
-    });
+        resolve({
+          sheetId: storedConfig.sheetId || data.sheetId || "",
+          tabName: storedConfig.tabName || data.tabName || "",
+          fields: Array.isArray(storedConfig.fields)
+            ? storedConfig.fields
+            : Array.isArray(data.fields)
+              ? data.fields
+              : [],
+        });
+      },
+    );
   });
+}
+if (typeof module !== "undefined") {
+  module.exports = {
+    handleAppend,
+    getAuthToken,
+    appendToGoogleSheet,
+    loadAppendConfig,
+    getStoredConfig,
+  };
 }
